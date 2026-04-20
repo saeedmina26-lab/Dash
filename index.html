@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PR PT — Action Tracker Dashboard</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;background:#F0F4F8;color:#1a1a1a;min-height:100vh;padding:20px}
+  .container{max-width:1400px;margin:0 auto}
+  .header{background:#1F3864;color:#fff;border-radius:10px;padding:18px 24px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  .header h1{font-size:20px;font-weight:700;letter-spacing:0.5px}
+  .header span{font-size:13px;opacity:0.8}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+  .stat{background:#fff;border-radius:8px;padding:14px 18px;border:1px solid #e0e8f0;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+  .stat .val{font-size:28px;font-weight:700;color:#1F3864}
+  .stat .lbl{font-size:12px;color:#666;margin-top:3px}
+  .toolbar{background:#fff;border-radius:8px;padding:14px 18px;margin-bottom:14px;border:1px solid #e0e8f0;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .toolbar input[type=text]{flex:1;min-width:180px;font-size:13px;height:34px;padding:0 12px;border:1px solid #ccd6e0;border-radius:6px;background:#F8FAFC;color:#1a1a1a;outline:none}
+  .toolbar input[type=text]:focus{border-color:#2E75B6;box-shadow:0 0 0 2px rgba(46,117,182,0.15)}
+  .toolbar select{font-size:13px;height:34px;padding:0 10px;border:1px solid #ccd6e0;border-radius:6px;background:#F8FAFC;color:#1a1a1a;cursor:pointer;outline:none}
+  .toolbar select:focus{border-color:#2E75B6}
+  .btn{font-size:13px;height:34px;padding:0 16px;border:1px solid #ccd6e0;border-radius:6px;background:#fff;color:#1a1a1a;cursor:pointer;white-space:nowrap;font-weight:500;transition:background 0.15s}
+  .btn:hover{background:#F0F4F8}
+  .btn.primary{background:#1F3864;color:#fff;border-color:#1F3864}
+  .btn.primary:hover{background:#2E75B6;border-color:#2E75B6}
+  .btn.success{background:#217346;color:#fff;border-color:#217346}
+  .btn.success:hover{background:#1a5c38}
+  .btn.danger{color:#c0392b;border-color:#e0b0b0}
+  .btn.danger:hover{background:#fff0f0}
+  .tbl-wrap{background:#fff;border-radius:10px;border:1px solid #e0e8f0;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,0.06);overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
+  th{background:#1F3864;color:#fff;font-weight:600;font-size:11px;padding:10px 12px;text-align:left;white-space:nowrap;position:sticky;top:0}
+  td{padding:9px 12px;border-bottom:1px solid #EFF3F8;color:#1a1a1a;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tr:nth-child(even) td{background:#F8FAFC}
+  tr:hover td{background:#EBF3FB !important}
+  .prog{display:flex;gap:4px;align-items:center}
+  .dot{width:15px;height:15px;border-radius:3px;border:1px solid #ccd6e0}
+  .dot.filled{background:#70AD47;border-color:#5a9a35}
+  .badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
+  .badge.daily{background:#DBEAFE;color:#1E40AF}
+  .badge.weekly{background:#D1FAE5;color:#065F46}
+  .actions{display:flex;gap:5px}
+  .icon-btn{width:28px;height:28px;border:1px solid #ccd6e0;border-radius:6px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:background 0.12s}
+  .icon-btn:hover{background:#F0F4F8}
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center}
+  .modal-bg.open{display:flex}
+  .modal{background:#fff;border-radius:12px;padding:28px;width:min(640px,96vw);max-height:92vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.18)}
+  .modal h2{font-size:16px;font-weight:700;color:#1F3864;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #EBF3FB}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .form-full{grid-column:1/-1}
+  .form-group label{display:block;font-size:12px;color:#555;margin-bottom:5px;font-weight:600}
+  .form-group input,.form-group select,.form-group textarea{width:100%;font-size:13px;padding:8px 12px;border:1px solid #ccd6e0;border-radius:6px;background:#F8FAFC;color:#1a1a1a;outline:none;transition:border-color 0.15s}
+  .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#2E75B6;box-shadow:0 0 0 2px rgba(46,117,182,0.12);background:#fff}
+  .form-group textarea{resize:vertical;min-height:80px;font-family:Arial,sans-serif}
+  .prog-checks{display:flex;gap:16px;flex-wrap:wrap;padding:8px 0}
+  .prog-checks label{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;color:#1a1a1a;font-weight:normal}
+  .prog-checks input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#1F3864}
+  .modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid #EFF3F8}
+  .no-data{text-align:center;padding:40px;color:#888;font-size:14px}
+  .toast{position:fixed;bottom:24px;right:24px;background:#1F3864;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.2)}
+  .toast.show{opacity:1}
+  .prog-label{font-size:10px;color:#666;margin-left:2px}
+  @media(max-width:600px){
+    .stats{grid-template-columns:1fr 1fr}
+    .form-grid{grid-template-columns:1fr}
+    .form-full{grid-column:1}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>PR PT — Action Tracker Dashboard</h1>
+    <span id="last-updated"></span>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="val" id="s-total">0</div><div class="lbl">Total items</div></div>
+    <div class="stat"><div class="val" id="s-done">0</div><div class="lbl">Completed (100%)</div></div>
+    <div class="stat"><div class="val" id="s-prog">0</div><div class="lbl">In progress</div></div>
+    <div class="stat"><div class="val" id="s-resp">0</div><div class="lbl">Responsible owners</div></div>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="🔍  Search subject, remarks, owner...">
+    <select id="filter-type"><option value="">All meetings</option><option>Daily</option><option>Weekly</option></select>
+    <select id="filter-resp"><option value="">All owners</option></select>
+    <select id="filter-prog"><option value="">All progress</option><option value="100">100% done</option><option value="partial">In progress</option><option value="none">Not started</option></select>
+    <button class="btn primary" onclick="openModal()">+ Add item</button>
+    <button class="btn success" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th style="width:44px">No.</th>
+        <th style="width:70px">Meeting</th>
+        <th style="width:85px">Date</th>
+        <th>Subject / Description</th>
+        <th style="width:80px">Progress</th>
+        <th style="width:100px">Responsible</th>
+        <th style="width:80px">Involved</th>
+        <th style="width:88px">Agreed Date</th>
+        <th style="width:180px">Remarks</th>
+        <th style="width:70px">Actions</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <h2 id="modal-title">Add new action item</h2>
+    <div class="form-grid">
+      <div class="form-group"><label>No.</label><input type="number" id="f-no" placeholder="e.g. 84"></div>
+      <div class="form-group"><label>Meeting type</label><select id="f-type"><option>Daily</option><option>Weekly</option></select></div>
+      <div class="form-group form-full"><label>Subject / Description *</label><input type="text" id="f-subj" placeholder="Enter subject or action item title"></div>
+      <div class="form-group"><label>Date entered</label><input type="date" id="f-date"></div>
+      <div class="form-group"><label>Agreed date</label><input type="date" id="f-agreed"></div>
+      <div class="form-group"><label>Responsible</label><input type="text" id="f-resp" placeholder="e.g. M. Magdy"></div>
+      <div class="form-group"><label>Involved</label><input type="text" id="f-inv" placeholder="e.g. A. Sabry"></div>
+      <div class="form-group form-full">
+        <label>Progress</label>
+        <div class="prog-checks">
+          <label><input type="checkbox" id="p25"> 25%</label>
+          <label><input type="checkbox" id="p50"> 50%</label>
+          <label><input type="checkbox" id="p75"> 75%</label>
+          <label><input type="checkbox" id="p100"> 100% — Done</label>
+        </div>
+      </div>
+      <div class="form-group form-full"><label>Remarks / Notes</label><textarea id="f-rem" placeholder="Status notes, decisions, next steps..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="saveItem()">Save item</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let items = [
+  {id:1,no:15,type:"Daily",date:"25/03/26",subj:"LTN4 automation template",p25:true,p50:true,p75:true,p100:true,resp:"M. Magdy",inv:"",agreed:"",rem:"Set a meeting to discuss internally"},
+  {id:2,no:33,type:"Daily",date:"25/03/26",subj:"Foaming machine status",p25:true,p50:true,p75:true,p100:false,resp:"A. Moustafa",inv:"",agreed:"",rem:"Evidence for official confirmation till machine release – waiting final ETA for Auxiliaries"},
+  {id:3,no:39,type:"Daily",date:"25/03/26",subj:"HBQ-902 Status",p25:true,p50:true,p75:false,p100:false,resp:"M. Magdy",inv:"",agreed:"",rem:"Layout implementation"},
+  {id:4,no:40,type:"Daily",date:"25/03/26",subj:"Inhouse OGC",p25:true,p50:true,p75:true,p100:false,resp:"M. Salah",inv:"",agreed:"04/09/26",rem:"File to be tested in Mexico (Merida2 Pilot area) – meeting done with Mexico+India, send .exe + presentation"},
+  {id:5,no:54,type:"Weekly",date:"25/03/26",subj:"Roll out plan for testing script",p25:true,p50:false,p75:false,p100:false,resp:"M. Salah",inv:"",agreed:"",rem:"In progress – rescheduled plan sent to Martina, deviation = zero"},
+  {id:6,no:59,type:"Daily",date:"25/03/26",subj:"Automated Packing Control (APC)",p25:false,p50:false,p75:false,p100:false,resp:"M. Salah",inv:"",agreed:"",rem:"Done for Non-LEPS – open discussion with CF/KPO; Yasser called Rafik IT KPO LEPS"},
+  {id:7,no:63,type:"Daily",date:"25/03/26",subj:"APA Handover",p25:true,p50:true,p75:false,p100:false,resp:"M. Magdy",inv:"A. Sabry",agreed:"",rem:"Set an internal meeting to agree on open activities"},
+  {id:8,no:64,type:"Weekly",date:"25/03/26",subj:"SMC FAT status",p25:true,p50:false,p75:false,p100:false,resp:"A. Sabry",inv:"",agreed:"",rem:"On track for training and samples – Strong Elec. Engineer to review diagram"},
+  {id:9,no:67,type:"Weekly",date:"25/03/26",subj:"SMC Laptops status",p25:true,p50:true,p75:true,p100:false,resp:"A. Sabry",inv:"",agreed:"",rem:"Waiting delivery W22/26"},
+  {id:10,no:75,type:"Daily",date:"25/03/26",subj:"AGV F1 status",p25:true,p50:false,p75:false,p100:false,resp:"M. Magdy",inv:"",agreed:"",rem:"PAM#26/0619 in approval cycle"},
+  {id:11,no:76,type:"Weekly",date:"25/03/26",subj:"SMC Assembly Board VS0 status",p25:true,p50:false,p75:false,p100:false,resp:"A. Sabry",inv:"",agreed:"",rem:"Boards PR in progress – Design on hold – New boards order raised"},
+  {id:12,no:77,type:"Weekly",date:"06/04/26",subj:"Ticketing system",p25:true,p50:true,p75:false,p100:false,resp:"Sherif K.",inv:"A. Sabry",agreed:"",rem:""},
+  {id:13,no:78,type:"Daily",date:"08/04/26",subj:"TACK-MAT profile gates",p25:false,p50:false,p75:false,p100:false,resp:"A. Moustafa",inv:"",agreed:"",rem:""},
+  {id:14,no:79,type:"Daily",date:"08/04/26",subj:"Schafer double stroke press",p25:true,p50:true,p75:false,p100:false,resp:"M. Magdy",inv:"",agreed:"",rem:"Ongoing – order TE parts, PO released"},
+  {id:15,no:81,type:"Daily",date:"08/04/26",subj:"WEGBA CAO P2 progress",p25:true,p50:false,p75:false,p100:false,resp:"M. Magdy",inv:"",agreed:"",rem:"Delay in plan due to SW integration"},
+  {id:16,no:82,type:"Daily",date:"09/04/26",subj:"OEM Transfer (Current + NPI)",p25:false,p50:false,p75:false,p100:false,resp:"M. Magdy",inv:"",agreed:"",rem:"Next week meeting with K. Rashid"},
+  {id:17,no:83,type:"Daily",date:"09/04/26",subj:"Automation material handling Badr 5",p25:false,p50:false,p75:false,p100:false,resp:"",inv:"",agreed:"",rem:""}
+];
+let nextId = 18;
+let editingId = null;
+
+function progLevel(i){return [i.p25,i.p50,i.p75,i.p100].filter(Boolean).length}
+
+function render(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const ft=document.getElementById('filter-type').value;
+  const fr=document.getElementById('filter-resp').value;
+  const fp=document.getElementById('filter-prog').value;
+  const filtered=items.filter(i=>{
+    if(ft && i.type!==ft)return false;
+    if(fr && i.resp!==fr)return false;
+    if(fp==='100' && !i.p100)return false;
+    if(fp==='partial'){let l=progLevel(i);if(l===0||l===4)return false}
+    if(fp==='none' && progLevel(i)!==0)return false;
+    if(q && !`${i.subj} ${i.rem} ${i.resp} ${i.inv}`.toLowerCase().includes(q))return false;
+    return true;
+  });
+  const tb=document.getElementById('tbody');
+  if(filtered.length===0){
+    tb.innerHTML=`<tr><td colspan="10"><div class="no-data">No items match your filters.</div></td></tr>`;
+    return;
+  }
+  tb.innerHTML=filtered.map(i=>{
+    const dots=[i.p25,i.p50,i.p75,i.p100].map((v,idx)=>`<div class="dot${v?' filled':''}" title="${(idx+1)*25}%"></div>`).join('');
+    const pct=progLevel(i)*25;
+    const badge=`<span class="badge ${i.type.toLowerCase()}">${i.type}</span>`;
+    return `<tr>
+      <td style="font-weight:700;color:#1F3864">${i.no}</td>
+      <td>${badge}</td>
+      <td style="font-size:11px;white-space:nowrap">${i.date}</td>
+      <td style="font-size:12px;font-weight:500">${escHtml(i.subj)}</td>
+      <td><div class="prog">${dots}</div><div class="prog-label">${pct}%</div></td>
+      <td style="font-size:12px">${escHtml(i.resp)||'—'}</td>
+      <td style="font-size:11px;color:#555">${escHtml(i.inv)||'—'}</td>
+      <td style="font-size:11px;white-space:nowrap">${i.agreed||'—'}</td>
+      <td style="font-size:11px;color:#555;max-width:180px;word-wrap:break-word">${escHtml(i.rem)}</td>
+      <td><div class="actions">
+        <button class="icon-btn" onclick="editItem(${i.id})" title="Edit">✏️</button>
+        <button class="icon-btn" onclick="deleteItem(${i.id})" title="Delete">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+  updateStats();
+  updateRespFilter();
+}
+
+function escHtml(s){
+  if(!s)return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function updateStats(){
+  document.getElementById('s-total').textContent=items.length;
+  document.getElementById('s-done').textContent=items.filter(i=>i.p100).length;
+  document.getElementById('s-prog').textContent=items.filter(i=>progLevel(i)>0&&!i.p100).length;
+  const owners=new Set(items.map(i=>i.resp).filter(Boolean));
+  document.getElementById('s-resp').textContent=owners.size;
+  const now=new Date();
+  document.getElementById('last-updated').textContent='Last updated: '+now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+
+function updateRespFilter(){
+  const sel=document.getElementById('filter-resp');
+  const cur=sel.value;
+  const owners=[...new Set(items.map(i=>i.resp).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">All owners</option>'+owners.map(o=>`<option${o===cur?' selected':''}>${escHtml(o)}</option>`).join('');
+}
+
+function openModal(id=null){
+  editingId=id;
+  document.getElementById('modal-title').textContent=id?'Edit action item':'Add new action item';
+  if(id){
+    const i=items.find(x=>x.id===id);
+    document.getElementById('f-no').value=i.no;
+    document.getElementById('f-type').value=i.type;
+    document.getElementById('f-subj').value=i.subj;
+    document.getElementById('f-date').value=toInputDate(i.date);
+    document.getElementById('f-agreed').value=toInputDate(i.agreed);
+    document.getElementById('f-resp').value=i.resp;
+    document.getElementById('f-inv').value=i.inv;
+    document.getElementById('f-rem').value=i.rem;
+    document.getElementById('p25').checked=i.p25;
+    document.getElementById('p50').checked=i.p50;
+    document.getElementById('p75').checked=i.p75;
+    document.getElementById('p100').checked=i.p100;
+  } else {
+    document.getElementById('f-no').value='';
+    document.getElementById('f-type').value='Daily';
+    document.getElementById('f-subj').value='';
+    document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
+    document.getElementById('f-agreed').value='';
+    document.getElementById('f-resp').value='';
+    document.getElementById('f-inv').value='';
+    document.getElementById('f-rem').value='';
+    ['p25','p50','p75','p100'].forEach(p=>document.getElementById(p).checked=false);
+  }
+  document.getElementById('modal-bg').classList.add('open');
+  setTimeout(()=>document.getElementById('f-subj').focus(),100);
+}
+
+function closeModal(){
+  document.getElementById('modal-bg').classList.remove('open');
+  editingId=null;
+}
+
+function toInputDate(d){
+  if(!d||d==='—')return '';
+  const p=d.split('/');
+  if(p.length===3){
+    const yr=p[2].length===2?'20'+p[2]:p[2];
+    return `${yr}-${p[1]}-${p[0]}`;
+  }
+  return '';
+}
+
+function fromInputDate(d){
+  if(!d)return '';
+  const p=d.split('-');
+  if(p.length===3)return `${p[2]}/${p[1]}/${p[0].slice(2)}`;
+  return '';
+}
+
+function saveItem(){
+  const subj=document.getElementById('f-subj').value.trim();
+  if(!subj){
+    document.getElementById('f-subj').focus();
+    document.getElementById('f-subj').style.borderColor='#e74c3c';
+    setTimeout(()=>document.getElementById('f-subj').style.borderColor='',2000);
+    return;
+  }
+  const item={
+    id:editingId||nextId++,
+    no:parseInt(document.getElementById('f-no').value)||items.length+1,
+    type:document.getElementById('f-type').value,
+    date:fromInputDate(document.getElementById('f-date').value)||new Date().toLocaleDateString('en-GB').split('/').map((p,i)=>i===2?p.slice(2):p).join('/'),
+    subj,
+    p25:document.getElementById('p25').checked,
+    p50:document.getElementById('p50').checked,
+    p75:document.getElementById('p75').checked,
+    p100:document.getElementById('p100').checked,
+    resp:document.getElementById('f-resp').value.trim(),
+    inv:document.getElementById('f-inv').value.trim(),
+    agreed:fromInputDate(document.getElementById('f-agreed').value),
+    rem:document.getElementById('f-rem').value.trim()
+  };
+  if(editingId){
+    const idx=items.findIndex(x=>x.id===editingId);
+    items[idx]=item;
+    showToast('Item updated successfully');
+  } else {
+    items.push(item);
+    showToast('New item added');
+  }
+  closeModal();
+  render();
+}
+
+function editItem(id){openModal(id)}
+
+function deleteItem(id){
+  const i=items.find(x=>x.id===id);
+  if(confirm(`Delete item #${i.no}: "${i.subj}"?`)){
+    items=items.filter(x=>x.id!==id);
+    render();
+    showToast('Item deleted');
+  }
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+function exportCSV(){
+  const headers=['No.','Meeting','Area','Date Entered','Subject/Description','25%','50%','75%','100%','Responsible','Involved','Agreed Date','Remarks'];
+  const rows=items.map(i=>[
+    i.no,i.type,'PR PT',i.date,
+    `"${(i.subj||'').replace(/"/g,'""')}"`,
+    i.p25?'x':'',i.p50?'x':'',i.p75?'x':'',i.p100?'x':'',
+    i.resp,i.inv,i.agreed,
+    `"${(i.rem||'').replace(/"/g,'""')}"`
+  ].join(','));
+  const csv=[headers.join(','),...rows].join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='PR_PT_Action_Tracker.csv';
+  a.click();
+  showToast('CSV exported successfully');
+}
+
+document.getElementById('modal-bg').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modal-bg'))closeModal();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeModal();
+});
+document.getElementById('search').addEventListener('input',render);
+document.getElementById('filter-type').addEventListener('change',render);
+document.getElementById('filter-resp').addEventListener('change',render);
+document.getElementById('filter-prog').addEventListener('change',render);
+
+render();
+</script>
+</body>
+</html>
